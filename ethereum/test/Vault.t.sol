@@ -8,11 +8,12 @@ contract VaultTest is Test {
     Vault vault;
     address alice = makeAddr("alice");
     address bob   = makeAddr("bob");
-
+    address croto = makeAddr("croto");
     function setUp() public {
         vault = new Vault();
         vm.deal(alice, 10 ether);
         vm.deal(bob,   10 ether);
+        vm.deal(croto, 0 ether);
     }
 
     // ── deposit ──────────────────────────────────────────────────────────
@@ -87,7 +88,24 @@ contract VaultTest is Test {
     // Ojo: (a) sin (b) es el error mas comun. Un test que solo prueba el
     // camino feliz no distingue una implementacion correcta de una que nunca
     // revierte.
-
+    function test_WithdrawAll_CaminoFeliz() public {
+        vm.startPrank(alice);
+        uint256 antes = alice.balance;
+        vault.deposit{value: 3 ether}();
+        assertEq(vault.balanceOf(alice), 3 ether);
+        vault.withdrawAll();
+        assertEq(alice.balance, antes + 3 ether);
+        assertEq(vault.balanceOf(alice), 0 ether);
+        vm.stopPrank();
+    }
+    function test_WithdrawAll_CaminoCroto() public {
+        vm.startPrank(croto);
+        
+        expectRevert(Vault.InsufficientBalance.selector);
+        vault.withdrawAll();
+        assertEq(vault.balanceOf(croto), 0);
+        vm.stopPrank();
+    }
 
     // ── aislamiento entre usuarios ────────────────────────────────────────
 
